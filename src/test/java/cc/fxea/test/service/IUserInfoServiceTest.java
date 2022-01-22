@@ -28,7 +28,7 @@ public class IUserInfoServiceTest {
     @Test
     public void testFindAll() {
         List<UserInfoEntity> all = userInfoService.findAll();
-        System.out.println(all.toString());
+        System.out.println(all.size());
     }
 
     @Test

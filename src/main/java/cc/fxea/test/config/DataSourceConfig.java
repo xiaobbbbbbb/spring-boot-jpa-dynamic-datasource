@@ -1,8 +1,10 @@
 package cc.fxea.test.config;
 
+import cc.fxea.test.enums.DataSourceType;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.support.http.StatViewServlet;
 import com.alibaba.druid.support.http.WebStatFilter;
+import javax.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -10,6 +12,10 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.util.StringUtils;
 
@@ -25,7 +31,7 @@ import java.util.Map;
  * @description
  * @date 7/5/2020 20:09
  **/
-@EnableTransactionManagement
+@EnableTransactionManagement(proxyTargetClass = true)
 @Configuration
 public class DataSourceConfig {
 
@@ -41,8 +47,8 @@ public class DataSourceConfig {
     @Value("${spring.datasource.druid.master.password}")
     private String masterPassword;
 
-    @Value("${spring.datasource.druid.master.driver-class-name}")
-    private String masterDriverClassName;
+//    @Value("${spring.datasource.druid.master.driver-class-name}")
+//    private String masterDriverClassName;
 
     @Value("${spring.datasource.druid.slave.name}")
     private String slaveName;
@@ -56,8 +62,8 @@ public class DataSourceConfig {
     @Value("${spring.datasource.druid.slave.password}")
     private String slavePassword;
 
-    @Value("${spring.datasource.druid.slave.driver-class-name}")
-    private String slaveDriverClassName;
+//    @Value("${spring.datasource.druid.slave.driver-class-name}")
+//    private String slaveDriverClassName;
 
     @Value("${spring.datasource.druid.initial-size}")
     private String initialSize;
@@ -107,13 +113,16 @@ public class DataSourceConfig {
     @Value("${spring.datasource.druid.stat-view-servlet.login-password}")
     private String password;
 
-    @Bean(name = "masterDataSource")
+    @Bean(
+        destroyMethod = "close",
+        initMethod = "init",
+        name = "masterDataSource")
     public DataSource masterDataSource() {
         DruidDataSource datasource = new DruidDataSource();
         datasource.setUrl(masterUrl);
         datasource.setUsername(masterUsername);
         datasource.setPassword(masterPassword);
-        datasource.setDriverClassName(masterDriverClassName);
+//        datasource.setDriverClassName(masterDriverClassName);
 
         //configuration
         if (!StringUtils.isEmpty(initialSize)) {
@@ -155,13 +164,16 @@ public class DataSourceConfig {
         return datasource;
     }
 
-    @Bean(name = "slaveDataSource")
+    @Bean(
+        destroyMethod = "close",
+        initMethod = "init",
+        name = "slaveDataSource")
     public DataSource slaveDataSource() {
         DruidDataSource datasource = new DruidDataSource();
-        datasource.setUrl(masterUrl);
-        datasource.setUsername(masterUsername);
-        datasource.setPassword(masterPassword);
-        datasource.setDriverClassName(masterDriverClassName);
+        datasource.setUrl(slaveUrl);
+        datasource.setUsername(slaveUsername);
+        datasource.setPassword(slavePassword);
+//        datasource.setDriverClassName(masterDriverClassName);
 
         //configuration
         if (!StringUtils.isEmpty(initialSize)) {
@@ -203,20 +215,23 @@ public class DataSourceConfig {
         return datasource;
     }
 
-    @Primary
-    @Bean
-    public DynamicRoutingDataSource dynamicDataSource(@Qualifier(value = "masterDataSource") DataSource masterDataSource, @Qualifier(value = "slaveDataSource") DataSource slaveDataSource) {
-        Map<Object, Object> targetDataSources = new HashMap<>(2);
-        targetDataSources.put(DynamicRoutingDataSourceContext.MASTER, masterDataSource);
-        targetDataSources.put(DynamicRoutingDataSourceContext.SLAVE, slaveDataSource);
-        DynamicRoutingDataSource dynamicRoutingDataSource = new DynamicRoutingDataSource();
-        //设置数据源
-        dynamicRoutingDataSource.setTargetDataSources(targetDataSources);
-        //设置默认选择的数据源
-        dynamicRoutingDataSource.setDefaultTargetDataSource(masterDataSource);
-        dynamicRoutingDataSource.afterPropertiesSet();
-        return dynamicRoutingDataSource;
-    }
+//    @Primary
+//    @Bean
+//    public DynamicRoutingDataSource dynamicDataSource(@Qualifier(value = "masterDataSource") DataSource masterDataSource, @Qualifier(value = "slaveDataSource") DataSource slaveDataSource) {
+//        Map<Object, Object> targetDataSources = new HashMap<>(2);
+//        targetDataSources.put(DynamicRoutingDataSourceContext.MASTER, masterDataSource);
+//        targetDataSources.put(DynamicRoutingDataSourceContext.SLAVE, slaveDataSource);
+//        DynamicRoutingDataSource dynamicRoutingDataSource = new DynamicRoutingDataSource();
+//        //设置数据源
+//        dynamicRoutingDataSource.setTargetDataSources(targetDataSources);
+//        //设置默认选择的数据源
+//        dynamicRoutingDataSource.setDefaultTargetDataSource(masterDataSource);
+//        dynamicRoutingDataSource.afterPropertiesSet();
+//        return dynamicRoutingDataSource;
+//    }
+
+
+
 
     @Bean
     public ServletRegistrationBean statViewServlet() {
@@ -243,5 +258,41 @@ public class DataSourceConfig {
         filterRegistrationBean.addInitParameter("exclusions", "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*");
         return filterRegistrationBean;
     }
+
+    @Bean(name = "dataSource")
+    @Primary
+    public DynamicRoutingDataSource dataSource(@Qualifier("masterDataSource") DataSource masterDataSource, @Qualifier("slaveDataSource") DataSource slaveDataSource) {
+        DynamicRoutingDataSource dynamicDataSource = new DynamicRoutingDataSource();
+        dynamicDataSource.setDefaultTargetDataSource(masterDataSource);
+        Map<Object, Object> dsMap = new HashMap(2);
+        dsMap.put(DataSourceType.WRITE.getName(), masterDataSource);
+        dsMap.put(DataSourceType.READ.getName(), slaveDataSource);
+        dynamicDataSource.setTargetDataSources(dsMap);
+        return dynamicDataSource;
+    }
+
+    /**
+     * 　DataSource　事物
+     * @return
+     */
+    @Bean
+    @Primary
+    public PlatformTransactionManager transactionManager(@Qualifier("masterDataSource") DataSource masterDataSource, @Qualifier("slaveDataSource") DataSource slaveDataSource) throws SQLException{
+//        dataSource = dataSource();
+        return new DataSourceTransactionManager(dataSource(masterDataSource,slaveDataSource));
+    }
+
+    /**
+     * jpa 事物
+     *
+     * @param entityManagerFactory
+     * @return
+     */
+    @Bean
+    public PlatformTransactionManager txManager(EntityManagerFactory entityManagerFactory) throws SQLException{
+        return new JpaTransactionManager(entityManagerFactory);
+    }
+
+
 
 }

@@ -1,5 +1,6 @@
 package cc.fxea.test.annotation;
 
+import cc.fxea.test.enums.DataSourceType;
 import java.lang.annotation.*;
 
 /**
@@ -13,5 +14,5 @@ import java.lang.annotation.*;
 @Retention(value = RetentionPolicy.RUNTIME)
 @Documented
 public @interface TargetDataSource {
-    String value();
+    DataSourceType value() default DataSourceType.WRITE;
 }

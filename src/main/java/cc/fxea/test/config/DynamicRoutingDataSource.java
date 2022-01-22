@@ -12,8 +12,8 @@ import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 public class DynamicRoutingDataSource extends AbstractRoutingDataSource {
     @Override
     protected Object determineCurrentLookupKey() {
-        Object lookupKey = DynamicRoutingDataSourceContext.getRoutingDataSource();
-        System.err.println(Thread.currentThread().getName() + " determineCurrentLookupKey : " + lookupKey);
+        Object lookupKey = DynamicRoutingDataSourceContext.getDataSource();
+        System.out.println(Thread.currentThread().getName() + " determineCurrentLookupKey : " + lookupKey);
         return lookupKey;
     }
 }

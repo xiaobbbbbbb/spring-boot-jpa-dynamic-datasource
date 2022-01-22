@@ -2,6 +2,7 @@ package cc.fxea.test.service.impl;
 
 import cc.fxea.test.annotation.TargetDataSource;
 import cc.fxea.test.domain.UserInfoEntity;
+import cc.fxea.test.enums.DataSourceType;
 import cc.fxea.test.repository.IUserInfoRepository;
 import cc.fxea.test.service.IUserInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,19 +26,21 @@ public class UserInfoServiceImpl implements IUserInfoService {
     @Autowired
     private IUserInfoRepository userInfoRepository;
 
-    @TargetDataSource(value = "slave")
+    @TargetDataSource(DataSourceType.READ)
     @Override
+    @Transactional
     public List<UserInfoEntity> findAll() {
         return userInfoRepository.findAll();
     }
 
     @Transactional
+    @TargetDataSource(DataSourceType.READ)
     @Override
     public UserInfoEntity save(UserInfoEntity userInfoEntity) {
         return userInfoRepository.save(userInfoEntity);
     }
 
-    @TargetDataSource(value = "slave")
+    @TargetDataSource(DataSourceType.READ)
     @Override
     public UserInfoEntity findById(Long id) {
         Optional<UserInfoEntity> userInfoEntity = userInfoRepository.findById(id);

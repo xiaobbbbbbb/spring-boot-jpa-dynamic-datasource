@@ -9,33 +9,21 @@ package cc.fxea.test.config;
  **/
 public class DynamicRoutingDataSourceContext {
 
-    public static final String MASTER = "master";
 
-    public static final String SLAVE = "slave";
+    private static final ThreadLocal<String> contextHolder = new ThreadLocal();
 
-    private static final ThreadLocal<Object> threadLocalDataSource = new ThreadLocal<>();
-
-
-    public static void setRoutingDataSource(Object dataSource) {
-        if (dataSource == null) {
-            throw new NullPointerException();
-        }
-        threadLocalDataSource.set(dataSource);
-        // System.err.println(Thread.currentThread().getName()+" set RoutingDataSource : " + dataSource);
+    public DynamicRoutingDataSourceContext() {
     }
 
-    public static Object getRoutingDataSource() {
-        Object dataSourceType = threadLocalDataSource.get();
-        if (dataSourceType == null) {
-            threadLocalDataSource.set(DynamicRoutingDataSourceContext.MASTER);
-            return getRoutingDataSource();
-        }
-        // System.err.println(Thread.currentThread().getName()+" get RoutingDataSource : " + dataSourceType);
-        return dataSourceType;
+    public static void setDataSource(String dataSourceType) {
+        contextHolder.set(dataSourceType);
     }
 
-    public static void removeRoutingDataSource() {
-        threadLocalDataSource.remove();
-        // System.err.println(Thread.currentThread().getName()+" remove RoutingDataSource");
+    public static String getDataSource() {
+        return (String)contextHolder.get();
+    }
+
+    public static void clearDataSource() {
+        contextHolder.remove();
     }
 }

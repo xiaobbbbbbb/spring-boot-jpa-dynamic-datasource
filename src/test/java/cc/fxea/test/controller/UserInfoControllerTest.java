@@ -35,14 +35,14 @@ class UserInfoControllerTest {
 
     @Test
     void findById() {
-        String reqUrl = "http://localhost:8080/api/user-info/findById/13";
+        String reqUrl = "http://localhost:8081/api/user-info/findById/1";
         String result = get(reqUrl);
         System.out.println(result);
     }
 
     @Test
     void bathInsert() {
-        String reqUrl = "http://localhost:8080/api/user-info/bathInsert/5";
+        String reqUrl = "http://localhost:8081/api/user-info/bathInsert/5";
         String result = get(reqUrl);
         System.out.println(result);
     }
